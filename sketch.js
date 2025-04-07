@@ -1,7 +1,17 @@
 /**
  * @format
  * @description
- *  Deployments go: https://smithjl-personal.github.io/game-of-life/
+ *      Deployments go: https://smithjl-personal.github.io/game-of-life/
+ *
+ * @ideas
+ *      Make a tool that allows exports of the game state to this string encoded format?
+ *
+ * @typedef {Array<Array<boolean>>} GameOfLifeBoard
+ *
+ * @typedef ShapeChoice
+ * @property {string} name
+ * @property {string} type
+ * @property {string} data The encoded data for this shape.
  */
 
 let canvasWidth = 500;
@@ -11,9 +21,17 @@ let cellSize = 10;
 let cellsX = canvasWidth / cellSize;
 let cellsY = canvasHeight / cellSize;
 
-let fps = 1;
+let fps = 8;
 
-/** @type {Array<Array<boolean>>} */
+const SHAPE_CHOICES = [
+	{
+		name: "Glider",
+		type: "Spaceship",
+		data: "D5\nD2L1D2\nD3L1D1\nD1L3D1\nD5",
+	},
+];
+
+/** @type {GameOfLifeBoard} */
 let cells;
 
 // P5.js functions.
@@ -27,7 +45,12 @@ function setup() {
 
 	// Create the 2D Cell Array, then populate it with random data.
 	initCells();
+
+	// Random seed.
 	setRandomCellData();
+
+	// Places a glider in the top left.
+	//setEncodedCells(SHAPE_CHOICES[0], 5, 5);
 }
 
 function draw() {
@@ -69,12 +92,7 @@ function initCells() {
 	// Populate it.
 	cellsX = canvasWidth / cellSize;
 	cellsY = canvasHeight / cellSize;
-	for (let y = 0; y < cellsY; y++) {
-		cells[y] = [];
-		for (let x = 0; x < cellsX; x++) {
-			cells[y].push(false);
-		}
-	}
+	cells = getDead2DArray(cellsX, cellsY);
 }
 
 /**
@@ -82,11 +100,8 @@ function initCells() {
  * This function follows the rules outlined by John Conway in 1970.
  */
 function updateCells() {
-	// TODO: Make this a global variable? So we don't need to declare a new array each time?
-	let newCells = [];
-	for (let y = 0; y < cellsY; y++) {
-		newCells[y] = new Array(cellsX);
-	}
+	/** @type {GameOfLifeBoard} */
+	let newCells = getDead2DArray(cellsX, cellsY);
 
 	// For each cell...
 	for (let y = 0; y < cellsY; y++) {
@@ -175,6 +190,164 @@ function setRandomCellData() {
 			}
 		}
 	}
+}
+
+/**
+ * Attempts to place chosen shape on the grid. May throw errors
+ * if something goes wrong parsing the shape, or if the shape cannot
+ * fit at the location.
+ * @param {ShapeChoice} shape
+ * @param {number} x
+ * @param {number} y
+ */
+function setEncodedCells(shape, x, y) {
+	const decodedShapeResult = parseEncodedShapeString(shape.data);
+	if (!decodedShapeResult.success) {
+		throw Error(decodedShapeResult.message);
+	}
+
+	// Verify shape can fit where it is placed.
+	if (y + decodedShapeResult.decodedShapeHeight > cellsY) {
+		throw Error("This shape is too tall to be placed here.");
+	}
+	if (x + decodedShapeResult.decodedShapeWidth > cellsX) {
+		throw Error("This shape is too wide to be placed here.");
+	}
+
+	// Place the shape.
+	for (let decodedY = 0; decodedY < decodedShapeResult.decodedShapeHeight; decodedY++) {
+		for (let decodedX = 0; decodedX < decodedShapeResult.decodedShapeWidth; decodedX++) {
+			cells[y + decodedY][x + decodedX] =
+				decodedShapeResult.decodedShapeArray[decodedY][decodedX];
+		}
+	}
+}
+
+/**
+ * Does the heavy lifting for decoding the shape string.
+ * This function is very picky, and expects the string
+ * to be formatted correctly!
+ * @param {string} str The encoded string for the shape.
+ */
+function parseEncodedShapeString(str) {
+	const result = {
+		message: "",
+		success: false,
+		decodedShapeArray: [],
+		decodedShapeWidth: 0,
+		decodedShapeHeight: 0,
+	};
+
+	const encodedShapeLines = str.split("\n");
+	if (encodedShapeLines.length === 0) {
+		result.message = "Encoded shape provided seems to have no lines.";
+		return result;
+	}
+
+	// Get the height and width of the shape.
+	result.decodedShapeHeight = encodedShapeLines.length + 1;
+	for (const char of encodedShapeLines[0]) {
+		const parsedChar = parseInt(char);
+		if (!isNaN(parsedChar)) {
+			result.decodedShapeWidth += parsedChar;
+		}
+	}
+
+	// Populate the array as empty.
+	result.decodedShapeArray = getDead2DArray(result.decodedShapeWidth, result.decodedShapeHeight);
+
+	// Then put the data in there.
+	let xStrWalker = 0;
+	let cursorX = 0;
+	let cursorY = 0;
+	for (const encodedLine of encodedShapeLines) {
+		// Verify line length is even (will help if we encode something wrong).
+		if (encodedLine.length % 2 !== 0) {
+			result.message = "Uneven line length for encoded shape.";
+			return result;
+		}
+
+		// Initialize the x-walker.
+		xStrWalker = 0;
+		cursorX = 0;
+		while (xStrWalker < encodedLine.length) {
+			// Get the cell state.
+			let cellState = false;
+			if (encodedLine[xStrWalker] === "D") {
+				cellState = false;
+			} else if (encodedLine[xStrWalker] === "L") {
+				cellState = true;
+			} else {
+				result.message = `Unexpected value provided for cell state. We expect 'D' or 'L', but got '${encodedLine[xStrWalker]}'.`;
+				return result;
+			}
+
+			// Get how many times we should repeat it.
+			let repetition = parseInt(encodedLine[xStrWalker + 1]);
+			if (isNaN(repetition)) {
+				result.message = `
+                    Unexpected value provided for cell repetition.
+                    We expect an integer, but got '${encodedLine[xStrWalker + 1]}'.`;
+				return result;
+			}
+
+			// If the cell state is dead, just increment the x cursor. Default state is dead.
+			if (!cellState) {
+				cursorX += repetition;
+			} else {
+				for (let cellCounter = 0; cellCounter < repetition; cursorX++, cellCounter++) {
+					result.decodedShapeArray[cursorY][cursorX] = true;
+				}
+			}
+
+			xStrWalker += 2;
+		}
+
+		// Verify x cursor position is correct.
+		if (cursorX !== result.decodedShapeWidth) {
+			result.message = `
+                Width of parsed string stopped unexpectedly.
+                We expected a stop at '${result.decodedShapeWidth}', but got '${cursorX}'.`;
+			return result;
+		}
+
+		// Increment y position.
+		cursorY++;
+	}
+
+	/**
+	 * Verify y cursor position is correct.
+	 * We do a pre-increment on the y value because we only increment y once per line.
+	 * Meaning we end up one short of the 'height' in this context.
+	 */
+	if (++cursorY !== result.decodedShapeHeight) {
+		result.message = `
+            Height of parsed string stopped unexpectedly.
+            We expected a stop at '${result.decodedShapeHeight}', but got '${cursorY}'.`;
+		return result;
+	}
+
+	result.success = true;
+	return result;
+}
+
+/**
+ * Helper function that given a width and height, returns a 2D array filled with dead cells.
+ * @param {number} width
+ * @param {number} height
+ * @returns {Array<Array<boolean>>}
+ */
+function getDead2DArray(width, height) {
+	const arr = [];
+
+	for (let y = 0; y < height; y++) {
+		arr[y] = [];
+		for (let x = 0; x < width; x++) {
+			arr[y].push(false);
+		}
+	}
+
+	return arr;
 }
 
 /**
