@@ -23,6 +23,8 @@ let cellsY = canvasHeight / cellSize;
 
 let fps = 8;
 
+let isFrozen = false;
+
 const SHAPE_CHOICES = [
 	{
 		name: "Glider",
@@ -42,6 +44,15 @@ function setup() {
 	// Make the canvas, and add click listener to it.
 	let canvas = createCanvas(canvasWidth, canvasHeight);
 	canvas.mouseClicked(clickedCanvas);
+
+	let pausePlayButton = createButton("Pause Animation");
+	pausePlayButton.mouseClicked(clickedPausePlay);
+
+	let stepButton = createButton("Step");
+	stepButton.mouseClicked(updateCells);
+
+	let randomSeedButton = createButton("Set Random State");
+	randomSeedButton.mouseClicked(setRandomCellData);
 
 	// Create the 2D Cell Array, then populate it with random data.
 	initCells();
@@ -69,7 +80,9 @@ function draw() {
 
 	// Update.
 	// TODO: Add ability to 'freeze' time here with a boolean control.
-	updateCells();
+	if (!isFrozen) {
+		updateCells();
+	}
 }
 
 // Our Functions.
@@ -350,7 +363,20 @@ function getDead2DArray(width, height) {
 	return arr;
 }
 
+// User input events.
+
 /**
  * TODO: Make this do something.
  */
 function clickedCanvas() {}
+
+/**
+ * @param {MouseEvent} e
+ */
+function clickedPausePlay(e) {
+	isFrozen = !isFrozen;
+
+	/** @type {HTMLButtonElement} */
+	let button = e.target;
+	button.innerText = isFrozen ? "Play Animation" : "Pause Animation";
+}
