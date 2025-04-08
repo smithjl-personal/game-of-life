@@ -14,8 +14,8 @@
  * @property {string} data The encoded data for this shape.
  */
 
-let canvasWidth = 500;
-let canvasHeight = 500;
+let canvasWidth = 1000;
+let canvasHeight = 750;
 
 let cellSize = 10;
 let cellsX = canvasWidth / cellSize;
@@ -27,9 +27,28 @@ let isFrozen = false;
 
 const SHAPE_CHOICES = [
 	{
+		id: "glider",
 		name: "Glider",
 		type: "Spaceship",
 		data: "D5\nD2L1D2\nD3L1D1\nD1L3D1\nD5",
+	},
+	{
+		id: "brick_layer_a",
+		name: "Brick Layer A",
+		type: "Brick Layer",
+		data: "D10\nD7L1D2\nD5L1D1L2D1\nD5L1D1L1D2\nD5L1D4\nD3L1D6\nD1L1D1L1D6\nD10",
+	},
+	{
+		id: "brick_layer_b",
+		name: "Brick Layer B",
+		type: "Brick Layer",
+		data: "D7\nD1L3D1L1D1\nD1L1D5\nD4L2D1\nD2L2D1L1D1\nD1L1D1L1D1L1D1\nD7",
+	},
+	{
+		id: "brick_layer_thin",
+		name: "Brick Layer Thin",
+		type: "Brick Layer",
+		data: "D41\nD1L8D1L5D3L3D6L7D1L5D1\nD41",
 	},
 ];
 
@@ -58,10 +77,19 @@ function setup() {
 	initCells();
 
 	// Random seed.
-	setRandomCellData();
+	//setRandomCellData();
 
 	// Places a glider in the top left.
 	//setEncodedCells(SHAPE_CHOICES[0], 5, 5);
+
+	// Places a brick layer thin.
+	//setEncodedCells(SHAPE_CHOICES[3], 30, 35);
+
+	// Places a brick layer a.
+	// setEncodedCells(SHAPE_CHOICES[1], 30, 35);
+
+	// Places a brick layer b.
+	setEncodedCells(SHAPE_CHOICES[2], 30, 35);
 }
 
 function draw() {
@@ -257,10 +285,15 @@ function parseEncodedShapeString(str) {
 		return result;
 	}
 
-	// Get the height and width of the shape.
+	// Get the height of the shape.
 	result.decodedShapeHeight = encodedShapeLines.length + 1;
-	for (const char of encodedShapeLines[0]) {
-		const parsedChar = parseInt(char);
+
+	// Get the width of the shape.
+	const firstLine = encodedShapeLines[0];
+	const firstLineOnlyNumbersAndSpaces = firstLine.replace(/\D/g, " ");
+	const digitArray = firstLineOnlyNumbersAndSpaces.split(" ");
+	for (const number of digitArray) {
+		const parsedChar = parseInt(number);
 		if (!isNaN(parsedChar)) {
 			result.decodedShapeWidth += parsedChar;
 		}
@@ -274,12 +307,6 @@ function parseEncodedShapeString(str) {
 	let cursorX = 0;
 	let cursorY = 0;
 	for (const encodedLine of encodedShapeLines) {
-		// Verify line length is even (will help if we encode something wrong).
-		if (encodedLine.length % 2 !== 0) {
-			result.message = "Uneven line length for encoded shape.";
-			return result;
-		}
-
 		// Initialize the x-walker.
 		xStrWalker = 0;
 		cursorX = 0;
@@ -295,12 +322,21 @@ function parseEncodedShapeString(str) {
 				return result;
 			}
 
-			// Get how many times we should repeat it.
-			let repetition = parseInt(encodedLine[xStrWalker + 1]);
+			// Move the walker forward.
+			xStrWalker++;
+
+			// Build the number digit by digit until we reach the end of the string, or a non-numeric character.
+			let repetitionStr = "";
+			while (xStrWalker < encodedLine.length && !isNaN(parseInt(encodedLine[xStrWalker]))) {
+				repetitionStr += encodedLine[xStrWalker];
+				xStrWalker++;
+			}
+
+			let repetition = parseInt(repetitionStr);
 			if (isNaN(repetition)) {
 				result.message = `
                     Unexpected value provided for cell repetition.
-                    We expect an integer, but got '${encodedLine[xStrWalker + 1]}'.`;
+                    We expect an integer, but got '${repetitionStr}'.`;
 				return result;
 			}
 
@@ -312,8 +348,6 @@ function parseEncodedShapeString(str) {
 					result.decodedShapeArray[cursorY][cursorX] = true;
 				}
 			}
-
-			xStrWalker += 2;
 		}
 
 		// Verify x cursor position is correct.
