@@ -70,6 +70,9 @@ function setup() {
 	let stepButton = createButton("Step");
 	stepButton.mouseClicked(updateCells);
 
+	let clearButton = createButton("Clear Grid");
+	clearButton.mouseClicked(initCells);
+
 	let randomSeedButton = createButton("Set Random State");
 	randomSeedButton.mouseClicked(setRandomCellData);
 
