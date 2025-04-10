@@ -52,6 +52,22 @@ const SHAPE_CHOICES = [
 	},
 ];
 
+const MOUSE_STATE_CHOICES = [
+	{
+		value: "draw",
+		display: "Draw",
+	},
+	{
+		value: "erase",
+		display: "Erase",
+	},
+	{
+		value: "place",
+		display: "Place Shape",
+	},
+];
+let selectedMouseState = "draw";
+
 /** @type {GameOfLifeBoard} */
 let cells;
 
@@ -62,7 +78,8 @@ function setup() {
 
 	// Make the canvas, and add click listener to it.
 	let canvas = createCanvas(canvasWidth, canvasHeight);
-	canvas.mouseClicked(clickedCanvas);
+	canvas.mouseReleased(canvasMouseEvent);
+	canvas.mouseMoved(canvasMouseEvent);
 
 	let pausePlayButton = createButton("Pause Animation");
 	pausePlayButton.mouseClicked(clickedPausePlay);
@@ -403,9 +420,53 @@ function getDead2DArray(width, height) {
 // User input events.
 
 /**
- * TODO: Make this do something.
+ * @param {MouseEvent} e
  */
-function clickedCanvas() {}
+function canvasMouseEvent(e) {
+	e.preventDefault();
+
+	// If the mouse is moving over the canvas with no buttons clicked, ignore it.
+	if (e.type === "mousemove" && !e.buttons) {
+		return;
+	}
+
+	if (selectedMouseState === "draw" || selectedMouseState === "erase") {
+		let cellState;
+		if (selectedMouseState === "draw") {
+			cellState = true;
+		} else {
+			cellState = false;
+		}
+
+		// Get the tile they clicked on.
+		const result = getStructuredClickData(e);
+		cells[result.cellY][result.cellX] = cellState;
+	}
+}
+
+/**
+ * TODO: Document this better.
+ * @param {MouseEvent} e
+ */
+function getStructuredClickData(e) {
+	const result = {
+		x: -1,
+		y: -1,
+		cellX: -1,
+		cellY: -1,
+	};
+
+	/** @type {HTMLElement} */
+	const canvas = e.target;
+
+	result.x = e.x - canvas.offsetLeft;
+	result.y = e.y - canvas.offsetTop;
+
+	result.cellX = Math.floor(result.x / cellSize);
+	result.cellY = Math.floor(result.y / cellSize);
+
+	return result;
+}
 
 /**
  * @param {MouseEvent} e
