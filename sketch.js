@@ -414,3 +414,12 @@ function clickedPausePlay(e) {
 	let button = e.target;
 	button.innerText = isFrozen ? "Play Animation" : "Pause Animation";
 }
+
+// Prevent the context menu from popping up when clicking on the canvas.
+window.addEventListener("contextmenu", function (e) {
+	/** @type {HTMLElement} */
+	const target = e.target;
+	if (target.tagName === "CANVAS") {
+		e.preventDefault();
+	}
+});
