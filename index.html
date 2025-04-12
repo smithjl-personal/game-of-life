@@ -20,8 +20,7 @@
 			<div>Cursor</div>
 			<div>
 				<label>
-					<input type="radio" value="draw" name="mouseStateRadioOption" checked="true" />
-					Draw
+					<input type="radio" value="draw" name="mouseStateRadioOption" /> Draw
 				</label>
 				<label>
 					<input type="radio" value="erase" name="mouseStateRadioOption" /> Erase
@@ -29,6 +28,17 @@
 				<label>
 					<input type="radio" value="place" name="mouseStateRadioOption" /> Place
 				</label>
+			</div>
+			<div id="shape-select-container">
+				<label>Shapes</label>
+
+				<!-- Options populated by JS. -->
+				<select id="shape-select" class="form-select">
+					<option value="-1">** Select a Shape **</option>
+				</select>
+
+				<!-- TODO: Populate this on select. -->
+				<div id="shape-description"></div>
 			</div>
 
 			<div>

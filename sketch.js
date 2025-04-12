@@ -9,6 +9,8 @@
  *
  * @typedef {Array<Array<boolean>>} GameOfLifeBoard
  *
+ * @typedef {"draw" | "erase" | "place"} selectedMouseState
+ *
  * @typedef ShapeChoice
  * @property {string} name
  * @property {string} type
@@ -53,20 +55,9 @@ const SHAPE_CHOICES = [
 	},
 ];
 
-const MOUSE_STATE_CHOICES = [
-	{
-		value: "draw",
-		display: "Draw",
-	},
-	{
-		value: "erase",
-		display: "Erase",
-	},
-	{
-		value: "place",
-		display: "Place Shape",
-	},
-];
+let selectedShapeIndex = -1;
+
+/** @type {selectedMouseState} */
 let selectedMouseState = "draw";
 
 /** @type {GameOfLifeBoard} */
@@ -85,21 +76,12 @@ function setup() {
 	initCells();
 
 	// Random seed.
-	//setRandomCellData();
+	setRandomCellData();
 
-	// Places a glider in the top left.
-	//setEncodedCells(SHAPE_CHOICES[0], 5, 5);
-
-	// Places a brick layer thin.
-	//setEncodedCells(SHAPE_CHOICES[3], 30, 35);
-
-	// Places a brick layer a.
-	// setEncodedCells(SHAPE_CHOICES[1], 30, 35);
-
-	// Places a brick layer b.
-	setEncodedCells(SHAPE_CHOICES[2], 30, 35);
-
+	// Generic setup.
+	populateShapeChoiceSelectOptions();
 	setEventListeners();
+	setDefaultFormState();
 }
 
 function draw() {
@@ -174,8 +156,48 @@ function setEventListeners() {
 		}
 	}
 
+	const shapeChoiceSelect = document.querySelector("select#shape-select");
+	if (shapeChoiceSelect === null) {
+		errors.push("Could not find element with selector `select#shape-select`.");
+	} else {
+		shapeChoiceSelect.addEventListener("change", selectedShapeChanged);
+	}
+
 	if (errors.length) {
 		console.error(errors.join("\n"));
+	}
+}
+
+function setDefaultFormState() {
+	const selectedMouseStateRadio = document.querySelector(
+		"input[name='mouseStateRadioOption']:checked"
+	);
+	if (selectedMouseStateRadio !== null) {
+		selectedMouseState = selectedMouseStateRadio.value;
+	}
+
+	if (selectedMouseState !== "place") {
+		const shapeSelectContainer = document.querySelector("#shape-select-container");
+		if (shapeSelectContainer === null) {
+			console.error("Could not find shape choice container...");
+		} else {
+			shapeSelectContainer.style.display = "none";
+		}
+	}
+}
+
+function populateShapeChoiceSelectOptions() {
+	let select = document.getElementById("shape-select");
+	if (select === null) {
+		console.error("Could not find select");
+	} else {
+		for (let i = 0; i < SHAPE_CHOICES.length; i++) {
+			const choice = SHAPE_CHOICES[i];
+			const newOption = document.createElement("option");
+			newOption.value = i;
+			newOption.innerText = choice.name;
+			select.appendChild(newOption);
+		}
 	}
 }
 
@@ -486,6 +508,21 @@ function canvasMouseEvent(e) {
 		const result = getStructuredClickData(e);
 		cells[result.cellY][result.cellX] = cellState;
 	}
+
+	if (selectedMouseState === "place" && selectedShapeIndex !== -1) {
+		//console.log("e.type", e.type);
+
+		if (e.type === "mousemove") {
+			// TODO: Draw an outline of what the shape will look like.
+		} else if (e.type === "mouseup") {
+			// Get the shape data.
+			const data = SHAPE_CHOICES[selectedShapeIndex];
+
+			// Attempt to place it at cursor position.
+			const result = getStructuredClickData(e);
+			setEncodedCells(data, result.cellX, result.cellY);
+		}
+	}
 }
 
 /**
@@ -517,11 +554,28 @@ function clickedPausePlay() {
 }
 
 /** @param {Event} e */
+function selectedShapeChanged(e) {
+	/** @type {HTMLInputElement} */
+	const el = e.target;
+	const newValue = el.value;
+	selectedShapeIndex = parseInt(newValue);
+}
+
+/** @param {Event} e */
 function mouseStateChanged(e) {
 	/** @type {HTMLInputElement} */
 	const el = e.target;
 	const newValue = el.value;
 	selectedMouseState = newValue;
+
+	const newShapeContainerDisplay = selectedMouseState === "place" ? "block" : "none";
+
+	const shapeSelectContainer = document.querySelector("#shape-select-container");
+	if (shapeSelectContainer === null) {
+		console.error("Could not find shape choice container...");
+	} else {
+		shapeSelectContainer.style.display = newShapeContainerDisplay;
+	}
 }
 
 // Prevent the context menu from popping up when clicking on the canvas.
