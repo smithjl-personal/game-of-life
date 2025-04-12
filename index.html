@@ -12,6 +12,33 @@
 	</head>
 
 	<body>
+		<!-- Will be populated by p5.js -->
+		<div id="canvas-container"></div>
+
+		<!-- We manually populate the control container. -->
+		<div id="control-container">
+			<div>Cursor</div>
+			<div>
+				<label>
+					<input type="radio" value="draw" name="mouseStateRadioOption" checked="true" />
+					Draw
+				</label>
+				<label>
+					<input type="radio" value="erase" name="mouseStateRadioOption" /> Erase
+				</label>
+				<label>
+					<input type="radio" value="place" name="mouseStateRadioOption" /> Place
+				</label>
+			</div>
+
+			<div>
+				<button id="pause-play" type="button" class="btn">Pause/Play Animation</button>
+				<button id="step" type="button" class="btn">Step Once</button>
+				<button id="clear" type="button" class="btn">Empty Grid</button>
+				<button id="fill-random" type="button" class="btn">Fill Grid Randomly</button>
+			</div>
+		</div>
+
 		<script src="sketch.js"></script>
 	</body>
 </html>

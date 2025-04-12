@@ -5,6 +5,7 @@
  *
  * @ideas
  *      Make a tool that allows exports of the game state to this string encoded format?
+ *      Make tool that allows selection of area on the board for copy/export (like a selection rectangle).
  *
  * @typedef {Array<Array<boolean>>} GameOfLifeBoard
  *
@@ -78,20 +79,7 @@ function setup() {
 
 	// Make the canvas, and add click listener to it.
 	let canvas = createCanvas(canvasWidth, canvasHeight);
-	canvas.mouseReleased(canvasMouseEvent);
-	canvas.mouseMoved(canvasMouseEvent);
-
-	let pausePlayButton = createButton("Pause Animation");
-	pausePlayButton.mouseClicked(clickedPausePlay);
-
-	let stepButton = createButton("Step");
-	stepButton.mouseClicked(updateCells);
-
-	let clearButton = createButton("Clear Grid");
-	clearButton.mouseClicked(initCells);
-
-	let randomSeedButton = createButton("Set Random State");
-	randomSeedButton.mouseClicked(setRandomCellData);
+	canvas.parent("canvas-container");
 
 	// Create the 2D Cell Array, then populate it with random data.
 	initCells();
@@ -110,6 +98,8 @@ function setup() {
 
 	// Places a brick layer b.
 	setEncodedCells(SHAPE_CHOICES[2], 30, 35);
+
+	setEventListeners();
 }
 
 function draw() {
@@ -134,6 +124,60 @@ function draw() {
 }
 
 // Our Functions.
+function setEventListeners() {
+	const errors = [];
+
+	const canvas = document.querySelector("canvas");
+	if (canvas === null) {
+		errors.push("Could not find `canvas` on page to add event listeners.");
+	} else {
+		canvas.addEventListener("mouseup", canvasMouseEvent);
+		canvas.addEventListener("mousemove", canvasMouseEvent);
+	}
+
+	const pausePlayButton = document.querySelector("button#pause-play");
+	if (pausePlayButton === null) {
+		errors.push("Could not find element with selector `button#pause-play`.");
+	} else {
+		pausePlayButton.addEventListener("click", clickedPausePlay);
+	}
+
+	const stepButton = document.querySelector("button#step");
+	if (stepButton === null) {
+		errors.push("Could not find element with selector `button#step`.");
+	} else {
+		stepButton.addEventListener("click", updateCells);
+	}
+
+	const clearButton = document.querySelector("button#clear");
+	if (clearButton === null) {
+		errors.push("Could not find element with selector `button#clear`.");
+	} else {
+		clearButton.addEventListener("click", initCells);
+	}
+
+	const randomSeedButton = document.querySelector("button#fill-random");
+	if (randomSeedButton === null) {
+		errors.push("Could not find element with selector `button#fill-random`.");
+	} else {
+		randomSeedButton.addEventListener("click", setRandomCellData);
+	}
+
+	const mouseStateRadios = document.querySelectorAll("input[name='mouseStateRadioOption']");
+	if (!mouseStateRadios.length) {
+		errors.push(
+			"Could not find any radio elements with selector `input[name='mouseStateRadioOption']`."
+		);
+	} else {
+		for (const radio of mouseStateRadios) {
+			radio.addEventListener("change", mouseStateChanged);
+		}
+	}
+
+	if (errors.length) {
+		console.error(errors.join("\n"));
+	}
+}
 
 /**
  * Populates a 2D Array of booleans to be used to store our state.
@@ -468,15 +512,16 @@ function getStructuredClickData(e) {
 	return result;
 }
 
-/**
- * @param {MouseEvent} e
- */
-function clickedPausePlay(e) {
+function clickedPausePlay() {
 	isFrozen = !isFrozen;
+}
 
-	/** @type {HTMLButtonElement} */
-	let button = e.target;
-	button.innerText = isFrozen ? "Play Animation" : "Pause Animation";
+/** @param {Event} e */
+function mouseStateChanged(e) {
+	/** @type {HTMLInputElement} */
+	const el = e.target;
+	const newValue = el.value;
+	selectedMouseState = newValue;
 }
 
 // Prevent the context menu from popping up when clicking on the canvas.
