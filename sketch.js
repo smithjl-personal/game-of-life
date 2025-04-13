@@ -3,9 +3,16 @@
  * @description
  *      Deployments go: https://smithjl-personal.github.io/game-of-life/
  *
+ *      Known Issues:
+ *      - Styling.
+ *      - Mobile/Responiveness.
+ *      - Maybe make instructions for new users?
+ *
  * @ideas
  *      Make a tool that allows exports of the game state to this string encoded format?
  *      Make tool that allows selection of area on the board for copy/export (like a selection rectangle).
+ *      Let users control size of cells (small, normal, large)
+ *      Let users control speed of animation (slow, normal, fast)
  *
  * @typedef {Array<Array<boolean>>} GameOfLifeBoard
  *
@@ -55,7 +62,18 @@ const SHAPE_CHOICES = [
 	},
 ];
 
-let selectedShapeIndex = -1;
+let selectedShapeData = {
+	index: -1,
+	width: 0,
+	height: 0,
+	cursorX: -1,
+	cursorY: -1,
+};
+
+let canvasOffset = {
+	left: 0,
+	top: 0,
+};
 
 /** @type {selectedMouseState} */
 let selectedMouseState = "draw";
@@ -71,6 +89,8 @@ function setup() {
 	// Make the canvas, and add click listener to it.
 	let canvas = createCanvas(canvasWidth, canvasHeight);
 	canvas.parent("canvas-container");
+	canvasOffset.left = canvas.elt.offsetLeft;
+	canvasOffset.top = canvas.elt.offsetTop;
 
 	// Create the 2D Cell Array, then populate it with random data.
 	initCells();
@@ -88,18 +108,43 @@ function draw() {
 	// Start with the black background.
 	background(0);
 
+	// Style for cells on the grid.
+	fill("white");
+	stroke("black");
+	strokeWeight(1);
+
 	// Draw all cells that are alive.
 	for (let y = 0; y < cellsY; y++) {
 		for (let x = 0; x < cellsX; x++) {
-			// Only draw live cells.
 			if (cells[y][x]) {
 				square(x * cellSize, y * cellSize, cellSize);
 			}
 		}
 	}
 
-	// Update.
-	// TODO: Add ability to 'freeze' time here with a boolean control.
+	// New code added to draw rectangle at cursor position.
+	if (
+		selectedMouseState === "place" &&
+		selectedShapeData.cursorX > 0 &&
+		selectedShapeData.cursorY > 0
+	) {
+		const rectWidth = selectedShapeData.width * cellSize;
+		const rectHeight = selectedShapeData.height * cellSize;
+
+		// If they place illegal shape location, color accordingly.
+		let strokeColor = "white";
+		if (selectedShapeData.cursorX + rectWidth + canvasOffset.left > canvasWidth) {
+			strokeColor = "red";
+		} else if (selectedShapeData.cursorY + rectHeight + canvasOffset.top > canvasHeight) {
+			strokeColor = "red";
+		}
+
+		stroke(strokeColor);
+		strokeWeight(3);
+		noFill();
+		rect(selectedShapeData.cursorX, selectedShapeData.cursorY, rectWidth, rectHeight);
+	}
+
 	if (!isFrozen) {
 		updateCells();
 	}
@@ -113,6 +158,7 @@ function setEventListeners() {
 	if (canvas === null) {
 		errors.push("Could not find `canvas` on page to add event listeners.");
 	} else {
+		canvas.addEventListener("mousedown", canvasMouseEvent);
 		canvas.addEventListener("mouseup", canvasMouseEvent);
 		canvas.addEventListener("mousemove", canvasMouseEvent);
 	}
@@ -333,12 +379,14 @@ function setEncodedCells(shape, x, y) {
 		throw Error(decodedShapeResult.message);
 	}
 
-	// Verify shape can fit where it is placed.
+	/**
+	 * Verify shape can fit where it is placed.
+	 * If it can't early exit. The UI indicates to the user why placement fails.
+	 */
 	if (y + decodedShapeResult.decodedShapeHeight > cellsY) {
-		throw Error("This shape is too tall to be placed here.");
-	}
-	if (x + decodedShapeResult.decodedShapeWidth > cellsX) {
-		throw Error("This shape is too wide to be placed here.");
+		return false;
+	} else if (x + decodedShapeResult.decodedShapeWidth > cellsX) {
+		return false;
 	}
 
 	// Place the shape.
@@ -504,19 +552,23 @@ function canvasMouseEvent(e) {
 			cellState = false;
 		}
 
-		// Get the tile they clicked on.
+		// Get the tile they clicked on, and draw the data accordingly.
 		const result = getStructuredClickData(e);
 		cells[result.cellY][result.cellX] = cellState;
 	}
 
-	if (selectedMouseState === "place" && selectedShapeIndex !== -1) {
-		//console.log("e.type", e.type);
-
-		if (e.type === "mousemove") {
-			// TODO: Draw an outline of what the shape will look like.
+	if (selectedMouseState === "place" && selectedShapeData.index !== -1) {
+		if (e.type === "mousemove" || e.type === "mousedown") {
+			const result = getStructuredClickData(e);
+			selectedShapeData.cursorX = result.x;
+			selectedShapeData.cursorY = result.y;
 		} else if (e.type === "mouseup") {
+			// Clear selected cursor position.
+			selectedShapeData.cursorX = -1;
+			selectedShapeData.cursorY = -1;
+
 			// Get the shape data.
-			const data = SHAPE_CHOICES[selectedShapeIndex];
+			const data = SHAPE_CHOICES[selectedShapeData.index];
 
 			// Attempt to place it at cursor position.
 			const result = getStructuredClickData(e);
@@ -558,7 +610,18 @@ function selectedShapeChanged(e) {
 	/** @type {HTMLInputElement} */
 	const el = e.target;
 	const newValue = el.value;
-	selectedShapeIndex = parseInt(newValue);
+	selectedShapeData.index = parseInt(newValue);
+
+	// Parse the shape, if we can find it.
+	const selectedShape = SHAPE_CHOICES[selectedShapeData.index];
+	if (selectedShape === undefined) {
+		selectedShapeData.width = 0;
+		selectedShapeData.height = 0;
+	} else {
+		const parsedShape = parseEncodedShapeString(selectedShape.data);
+		selectedShapeData.width = parsedShape.decodedShapeWidth;
+		selectedShapeData.height = parsedShape.decodedShapeHeight;
+	}
 }
 
 /** @param {Event} e */
