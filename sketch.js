@@ -133,9 +133,9 @@ function draw() {
 
 		// If they place illegal shape location, color accordingly.
 		let strokeColor = "white";
-		if (selectedShapeData.cursorX + rectWidth + canvasOffset.left > canvasWidth) {
+		if (selectedShapeData.cursorX + rectWidth > canvasWidth) {
 			strokeColor = "red";
-		} else if (selectedShapeData.cursorY + rectHeight + canvasOffset.top > canvasHeight) {
+		} else if (selectedShapeData.cursorY + rectHeight > canvasHeight) {
 			strokeColor = "red";
 		}
 
