@@ -112,7 +112,7 @@ function setup() {
 
 function draw() {
 	// Start with the black background.
-	background(0);
+	background("black");
 
 	// Style for cells on the grid.
 	fill("white");
