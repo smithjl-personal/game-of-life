@@ -591,8 +591,9 @@ function canvasMouseEvent(e) {
 }
 
 /**
- * TODO: Document this better.
- * @param {MouseEvent} e
+ * Given a mouse/touch event, returns some useful data to us. It normalizes the client X and Y to where that would be on the canvas.
+ * It also determines which cell they clicked on. We do not support multiple finger touches at this time.
+ * @param {MouseEvent | TouchEvent} e
  */
 function getStructuredClickData(e) {
 	const result = {
@@ -604,9 +605,23 @@ function getStructuredClickData(e) {
 
 	/** @type {HTMLElement} */
 	const canvas = e.target;
+	const rect = canvas.getBoundingClientRect();
 
-	result.x = e.x - canvas.offsetLeft;
-	result.y = e.y - canvas.offsetTop;
+	let clientX, clientY;
+
+	// Old browsers and some environments won't have this constructor.
+	if (typeof TouchEvent !== "undefined" && e instanceof TouchEvent) {
+		// Use the first touch point, even if multiple fingers are used. We aren't that fancy.
+		const touch = e.touches[0] || e.changedTouches[0];
+		clientX = touch.clientX;
+		clientY = touch.clientY;
+	} else {
+		clientX = e.clientX;
+		clientY = e.clientY;
+	}
+
+	result.x = clientX - rect.left;
+	result.y = clientY - rect.top;
 
 	result.cellX = Math.floor(result.x / cellSize);
 	result.cellY = Math.floor(result.y / cellSize);
