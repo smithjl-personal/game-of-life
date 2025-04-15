@@ -165,9 +165,15 @@ function setEventListeners() {
 	if (canvas === null) {
 		errors.push("Could not find `canvas` on page to add event listeners.");
 	} else {
+		// Desktop events.
 		canvas.addEventListener("mousedown", canvasMouseEvent);
 		canvas.addEventListener("mouseup", canvasMouseEvent);
 		canvas.addEventListener("mousemove", canvasMouseEvent);
+
+		// Mobile events.
+		canvas.addEventListener("touchstart", canvasMouseEvent);
+		canvas.addEventListener("touchend", canvasMouseEvent);
+		canvas.addEventListener("touchmove", canvasMouseEvent);
 	}
 
 	const pausePlayButton = document.querySelector("button#pause-play");
@@ -541,7 +547,7 @@ function getDead2DArray(width, height) {
 // User input events.
 
 /**
- * @param {MouseEvent} e
+ * @param {MouseEvent | TouchEvent} e
  */
 function canvasMouseEvent(e) {
 	e.preventDefault();
@@ -565,11 +571,11 @@ function canvasMouseEvent(e) {
 	}
 
 	if (selectedMouseState === "place" && selectedShapeData.index !== -1) {
-		if (e.type === "mousemove" || e.type === "mousedown") {
+		if (["mousemove", "mousedown", "touchmove", "touchstart"].includes(e.type)) {
 			const result = getStructuredClickData(e);
 			selectedShapeData.cursorX = result.x;
 			selectedShapeData.cursorY = result.y;
-		} else if (e.type === "mouseup") {
+		} else if (["mouseup", "touchend"].includes(e.type)) {
 			// Clear selected cursor position.
 			selectedShapeData.cursorX = -1;
 			selectedShapeData.cursorY = -1;
