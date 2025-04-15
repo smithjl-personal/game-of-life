@@ -4,9 +4,7 @@
  *      Deployments go: https://smithjl-personal.github.io/game-of-life/
  *
  *      Known Issues:
- *      - Styling.
- *      - Mobile/Responiveness.
- *      - Maybe make instructions for new users?
+ *      - Docs are lacking on this page in some areas. Fix it.
  *
  * @ideas
  *      Make a tool that allows exports of the game state to this string encoded format?
@@ -291,7 +289,7 @@ function updateCells() {
 			let neighborCount = countCellNeighbors(x, y);
 
 			// Dead cell logic.
-			if (!cells[y][x]) {
+			if (!cells?.[y]?.[x]) {
 				// Growth by reproduction.
 				if (neighborCount === 3) {
 					newCells[y][x] = true;
@@ -350,7 +348,7 @@ function countCellNeighbors(x, y) {
 			}
 
 			// Otherwise, count the data!
-			if (cells[neighborY][neighborX]) {
+			if (cells?.[neighborY]?.[neighborX]) {
 				neighborCount++;
 			}
 		}
