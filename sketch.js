@@ -24,7 +24,8 @@
  * @property {string} data The encoded data for this shape.
  */
 
-let canvasWidth = 1000;
+let currentWindowWidthState = "loading";
+let canvasWidth = 1400;
 let canvasHeight = 750;
 
 let cellSize = 10;
@@ -70,11 +71,6 @@ let selectedShapeData = {
 	cursorY: -1,
 };
 
-let canvasOffset = {
-	left: 0,
-	top: 0,
-};
-
 /** @type {selectedMouseState} */
 let selectedMouseState = "draw";
 
@@ -88,9 +84,10 @@ function setup() {
 
 	// Make the canvas, and add click listener to it.
 	let canvas = createCanvas(canvasWidth, canvasHeight);
+	canvas.addClass("border border-white");
 	canvas.parent("canvas-container");
-	canvasOffset.left = canvas.elt.offsetLeft;
-	canvasOffset.top = canvas.elt.offsetTop;
+
+	updateWindowWidthVariables();
 
 	// Create the 2D Cell Array, then populate it with random data.
 	initCells();
@@ -116,7 +113,8 @@ function draw() {
 	// Draw all cells that are alive.
 	for (let y = 0; y < cellsY; y++) {
 		for (let x = 0; x < cellsX; x++) {
-			if (cells[y][x]) {
+			// We use safe navigation in case the window is resizing while this loop is running.
+			if (cells?.[y]?.[x]) {
 				square(x * cellSize, y * cellSize, cellSize);
 			}
 		}
@@ -641,6 +639,46 @@ function mouseStateChanged(e) {
 	}
 }
 
+/** @param {UIEvent} e */
+function updateWindowWidthVariables(e) {
+	// Find out what the width is...
+	let newWindowWidthState;
+	let newCanvasWidth;
+	let newCanvasHeight;
+	if (window.innerWidth > 1400) {
+		newWindowWidthState = "large";
+		newCanvasWidth = 1400;
+		newCanvasHeight = 750;
+	} else if (window.innerWidth > 750) {
+		newWindowWidthState = "medium";
+		newCanvasWidth = 800;
+		newCanvasHeight = 750;
+	} else {
+		newWindowWidthState = "small";
+		newCanvasWidth = 300;
+		newCanvasHeight = 500;
+	}
+
+	// If it's the same, do nothing.
+	if (newWindowWidthState === currentWindowWidthState) {
+		return;
+	}
+
+	// Update the state, and all variables.
+	currentWindowWidthState = newWindowWidthState;
+	canvasWidth = newCanvasWidth;
+	canvasHeight = newCanvasHeight;
+	cellsX = canvasWidth / cellSize;
+	cellsY = canvasHeight / cellSize;
+	resizeCanvas(canvasWidth, canvasHeight);
+
+	// Make the control container the same width as the canvas.
+	let controlContainer = document.getElementById("control-container");
+	if (controlContainer) {
+		controlContainer.style.maxWidth = `${canvasWidth}px`;
+	}
+}
+
 // Prevent the context menu from popping up when clicking on the canvas.
 window.addEventListener("contextmenu", function (e) {
 	/** @type {HTMLElement} */
@@ -649,3 +687,5 @@ window.addEventListener("contextmenu", function (e) {
 		e.preventDefault();
 	}
 });
+
+window.addEventListener("resize", updateWindowWidthVariables);
