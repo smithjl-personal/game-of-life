@@ -34,12 +34,69 @@ let fps = 8;
 
 let isFrozen = false;
 
+// TODO: Consider moving these definitions to another file? Database file of some sort?
 const SHAPE_CHOICES = [
+	{
+		id: "pulsar",
+		name: "Pulsar",
+		type: "Oscillator",
+
+		// ew.
+		data: "D17\nD5L1D5L1D5\nD5L1D5L1D5\nD5L2D3L2D5\nD17\nD1L3D2L2D1L2D2L3D1\nD3L1D1L1D1L1D1L1D1L1D1L1D3\nD5L2D3L2D5\nD17\nD5L2D3L2D5\nD3L1D1L1D1L1D1L1D1L1D1L1D3\nD1L3D2L2D1L2D2L3D1\nD17\nD5L2D3L2D5\nD5L1D5L1D5\nD5L1D5L1D5\nD17",
+	},
+	{
+		id: "pd",
+		name: "Penta-decathlon",
+		type: "Oscillator",
+		data: "D11\nD11\nD11\nD11\nD11\nD4L3D4\nD4L1D1L1D4\nD4L3D4\nD4L3D4\nD4L3D4\nD4L3D4\nD4L1D1L1D4\nD4L3D4\nD11\nD11\nD11\nD11\nD11",
+	},
 	{
 		id: "glider",
 		name: "Glider",
 		type: "Spaceship",
 		data: "D5\nD2L1D2\nD3L1D1\nD1L3D1\nD5",
+	},
+	{
+		id: "lwss",
+		name: "LWSS",
+		type: "Spaceship",
+		data: "D8\nD8\nD4L2D2\nD2L2D1L2D1\nD2L4D2\nD3L2D3\nD8",
+	},
+	{
+		id: "mwss",
+		name: "MWSS",
+		type: "Spaceship",
+		data: "D10\nD10\nD10\nD5L2D3\nD2L3D1L2D2\nD2L5D3\nD3L3D4\nD10\nD10",
+	},
+	{
+		id: "hwss",
+		name: "HWSS",
+		type: "Spaceship",
+		data: "D10\nD10\nD10\nD6L2D2\nD2L4D1L2D1\nD2L6D2\nD3L4D3\nD10\nD10",
+	},
+	{
+		id: "diehard",
+		name: "Diehard",
+		type: "Methuselahs",
+		data: "D10\nD7L1D2\nD1L2D7\nD2L1D3L3D1\nD10",
+	},
+	{
+		id: "the-r-pentimo",
+		name: "The R-pentimo",
+		type: "Methuselahs",
+		data: "D5\nD2L2D1\nD1L2D2\nD2L1D2\nD5",
+	},
+	{
+		id: "acorn",
+		name: "Acorn",
+		type: "Methuselahs",
+		data: "D9\nD2L1D6\nD4L1D4\nD1L2D2L3D1\nD9",
+	},
+	{
+		id: "glider-gun",
+		name: "Gosper Glider Gun",
+		type: "Glider Gun",
+		data: "D38\nD25L1D12\nD23L1D1L1D12\nD13L2D6L2D12L2D1\nD12L1D3L1D4L2D12L2D1\nD1L2D8L1D5L1D3L2D15\nD1L2D8L1D3L1D1L2D4L1D1L1D12\nD11L1D5L1D7L1D12\nD12L1D3L1D21\nD13L2D23\nD38",
 	},
 	{
 		id: "brick_layer_a",
@@ -60,6 +117,33 @@ const SHAPE_CHOICES = [
 		data: "D41\nD1L8D1L5D3L3D6L7D1L5D1\nD41",
 	},
 ];
+const SHAPE_TYPE_TO_DESCRIPTIONS = {
+	Oscillator: `
+        <p>
+            These shapes return to their initial state after a finite number of generations.
+        </p>
+    `,
+	Spaceship: `
+        <p>
+            These are shapes that translates themselves across the grid.
+        </p>
+    `,
+	Methuselahs: `
+        <p>
+            These are shapes which evolve for long periods before stabilizing.
+        </p>
+    `,
+	"Brick Layer": `
+        <p>
+            These are shapes which have been proven to grow indefinitely.
+        </p>
+    `,
+	"Glider Gun": `
+        <p>
+            These shapes can acutally generate gliders!
+        </p>
+    `,
+};
 
 let selectedShapeData = {
 	index: -1,
@@ -501,7 +585,9 @@ function parseEncodedShapeString(str) {
 		if (cursorX !== result.decodedShapeWidth) {
 			result.message = `
                 Width of parsed string stopped unexpectedly.
-                We expected a stop at '${result.decodedShapeWidth}', but got '${cursorX}'.`;
+                We expected a stop at '${result.decodedShapeWidth}', but got '${cursorX}'.\n
+                This happened at Y Value '${cursorY}'.
+            `;
 			return result;
 		}
 
@@ -640,15 +726,32 @@ function selectedShapeChanged(e) {
 	const newValue = el.value;
 	selectedShapeData.index = parseInt(newValue);
 
+	// Update the display text under the shape.
+	const descriptionContainer = document.getElementById("shape-description");
+	if (descriptionContainer === null) {
+		console.error("Can't find description container. No description change.");
+	}
+
 	// Parse the shape, if we can find it.
 	const selectedShape = SHAPE_CHOICES[selectedShapeData.index];
 	if (selectedShape === undefined) {
 		selectedShapeData.width = 0;
 		selectedShapeData.height = 0;
+
+		if (descriptionContainer) {
+			descriptionContainer.innerHTML = "";
+		}
 	} else {
 		const parsedShape = parseEncodedShapeString(selectedShape.data);
 		selectedShapeData.width = parsedShape.decodedShapeWidth;
 		selectedShapeData.height = parsedShape.decodedShapeHeight;
+
+		if (descriptionContainer && SHAPE_TYPE_TO_DESCRIPTIONS[selectedShape.type]) {
+			descriptionContainer.innerHTML = `
+                <b>${selectedShape.type}</b>
+                ${SHAPE_TYPE_TO_DESCRIPTIONS[selectedShape.type]}
+            `;
+		}
 	}
 }
 
