@@ -11,12 +11,17 @@
  *      Make tool that allows selection of area on the board for copy/export (like a selection rectangle).
  *      Let users control size of cells (small, normal, large)
  *      Let users control speed of animation (slow, normal, fast)
+ *      Use localStorage to save user-created shapes.
+ *      Let users import/export shape JSON.
+ *      Create a "Favorites" section backed by localStorage.
+ *      Use .txt or .rle files to support importing from LifeWiki or Golly formats.
  *
  * @typedef {Array<Array<boolean>>} GameOfLifeBoard
  *
  * @typedef {"draw" | "erase" | "place"} selectedMouseState
  *
  * @typedef ShapeChoice
+ * @property {string} id
  * @property {string} name
  * @property {string} type
  * @property {string} data The encoded data for this shape.
@@ -34,116 +39,10 @@ let fps = 8;
 
 let isFrozen = false;
 
-// TODO: Consider moving these definitions to another file? Database file of some sort?
-const SHAPE_CHOICES = [
-	{
-		id: "pulsar",
-		name: "Pulsar",
-		type: "Oscillator",
-
-		// ew.
-		data: "D17\nD5L1D5L1D5\nD5L1D5L1D5\nD5L2D3L2D5\nD17\nD1L3D2L2D1L2D2L3D1\nD3L1D1L1D1L1D1L1D1L1D1L1D3\nD5L2D3L2D5\nD17\nD5L2D3L2D5\nD3L1D1L1D1L1D1L1D1L1D1L1D3\nD1L3D2L2D1L2D2L3D1\nD17\nD5L2D3L2D5\nD5L1D5L1D5\nD5L1D5L1D5\nD17",
-	},
-	{
-		id: "pd",
-		name: "Penta-decathlon",
-		type: "Oscillator",
-		data: "D11\nD11\nD11\nD11\nD11\nD4L3D4\nD4L1D1L1D4\nD4L3D4\nD4L3D4\nD4L3D4\nD4L3D4\nD4L1D1L1D4\nD4L3D4\nD11\nD11\nD11\nD11\nD11",
-	},
-	{
-		id: "glider",
-		name: "Glider",
-		type: "Spaceship",
-		data: "D5\nD2L1D2\nD3L1D1\nD1L3D1\nD5",
-	},
-	{
-		id: "lwss",
-		name: "LWSS",
-		type: "Spaceship",
-		data: "D8\nD8\nD4L2D2\nD2L2D1L2D1\nD2L4D2\nD3L2D3\nD8",
-	},
-	{
-		id: "mwss",
-		name: "MWSS",
-		type: "Spaceship",
-		data: "D10\nD10\nD10\nD5L2D3\nD2L3D1L2D2\nD2L5D3\nD3L3D4\nD10\nD10",
-	},
-	{
-		id: "hwss",
-		name: "HWSS",
-		type: "Spaceship",
-		data: "D10\nD10\nD10\nD6L2D2\nD2L4D1L2D1\nD2L6D2\nD3L4D3\nD10\nD10",
-	},
-	{
-		id: "diehard",
-		name: "Diehard",
-		type: "Methuselahs",
-		data: "D10\nD7L1D2\nD1L2D7\nD2L1D3L3D1\nD10",
-	},
-	{
-		id: "the-r-pentimo",
-		name: "The R-pentimo",
-		type: "Methuselahs",
-		data: "D5\nD2L2D1\nD1L2D2\nD2L1D2\nD5",
-	},
-	{
-		id: "acorn",
-		name: "Acorn",
-		type: "Methuselahs",
-		data: "D9\nD2L1D6\nD4L1D4\nD1L2D2L3D1\nD9",
-	},
-	{
-		id: "glider-gun",
-		name: "Gosper Glider Gun",
-		type: "Glider Gun",
-		data: "D38\nD25L1D12\nD23L1D1L1D12\nD13L2D6L2D12L2D1\nD12L1D3L1D4L2D12L2D1\nD1L2D8L1D5L1D3L2D15\nD1L2D8L1D3L1D1L2D4L1D1L1D12\nD11L1D5L1D7L1D12\nD12L1D3L1D21\nD13L2D23\nD38",
-	},
-	{
-		id: "brick_layer_a",
-		name: "Brick Layer A",
-		type: "Brick Layer",
-		data: "D10\nD7L1D2\nD5L1D1L2D1\nD5L1D1L1D2\nD5L1D4\nD3L1D6\nD1L1D1L1D6\nD10",
-	},
-	{
-		id: "brick_layer_b",
-		name: "Brick Layer B",
-		type: "Brick Layer",
-		data: "D7\nD1L3D1L1D1\nD1L1D5\nD4L2D1\nD2L2D1L1D1\nD1L1D1L1D1L1D1\nD7",
-	},
-	{
-		id: "brick_layer_thin",
-		name: "Brick Layer Thin",
-		type: "Brick Layer",
-		data: "D41\nD1L8D1L5D3L3D6L7D1L5D1\nD41",
-	},
-];
-const SHAPE_TYPE_TO_DESCRIPTIONS = {
-	Oscillator: `
-        <p>
-            These shapes return to their initial state after a finite number of generations.
-        </p>
-    `,
-	Spaceship: `
-        <p>
-            These are shapes that translates themselves across the grid.
-        </p>
-    `,
-	Methuselahs: `
-        <p>
-            These are shapes which evolve for long periods before stabilizing.
-        </p>
-    `,
-	"Brick Layer": `
-        <p>
-            These are shapes which have been proven to grow indefinitely.
-        </p>
-    `,
-	"Glider Gun": `
-        <p>
-            These shapes can acutally generate gliders!
-        </p>
-    `,
-};
+// Loaded later.
+/** @type {[ShapeChoice]} */
+let SHAPE_CHOICES = [];
+let SHAPE_TYPE_TO_DESCRIPTIONS = {};
 
 let selectedShapeData = {
 	index: -1,
@@ -161,6 +60,9 @@ let cells;
 
 // P5.js functions.
 function setup() {
+	// Start by async loading shape data.
+	loadShapes();
+
 	// See if user needs to see instructions.
 	const hasVisited = localStorage.getItem("hasVisited");
 	if (!hasVisited) {
@@ -189,7 +91,6 @@ function setup() {
 	setRandomCellData();
 
 	// Generic setup.
-	populateShapeChoiceSelectOptions();
 	setEventListeners();
 	setDefaultFormState();
 }
@@ -242,6 +143,26 @@ function draw() {
 }
 
 // Our Functions.
+async function loadShapes() {
+	try {
+		const response = await fetch("./db/shapes.json");
+		if (!response.ok) {
+			throw Error("Failed to load ./db/shapes.json");
+		}
+
+		// Get the JSON data.
+		const json = await response.json();
+
+		// Update our copies.
+		SHAPE_CHOICES = json.shapes;
+		SHAPE_TYPE_TO_DESCRIPTIONS = json.descriptions;
+
+		// Poplulate the select.
+		populateShapeChoiceSelectOptions();
+	} catch (err) {
+		console.error("Error loading shape data:", err);
+	}
+}
 function setEventListeners() {
 	const errors = [];
 
@@ -310,7 +231,6 @@ function setEventListeners() {
 		console.error(errors.join("\n"));
 	}
 }
-
 function setDefaultFormState() {
 	const selectedMouseStateRadio = document.querySelector(
 		"input[name='mouseStateRadioOption']:checked"
