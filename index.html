@@ -86,6 +86,94 @@
 							Fill Grid Randomly
 						</button>
 					</div>
+					<div class="col-lg-3">
+						<div>Info</div>
+						<button
+							id="show-instructions"
+							type="button"
+							class="btn btn-light"
+							data-bs-toggle="modal"
+							data-bs-target="#instructions-modal"
+						>
+							Show Instructions
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Instructions -->
+		<div
+			class="modal fade"
+			id="instructions-modal"
+			tabindex="-1"
+			aria-labelledby="instructions-modal-label"
+			aria-hidden="true"
+		>
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h1 class="modal-title fs-5" id="instructions-modal-label">How to play</h1>
+						<button
+							type="button"
+							class="btn-close"
+							data-bs-dismiss="modal"
+							aria-label="Close"
+						></button>
+					</div>
+					<div class="modal-body">
+						<p>
+							John Conway's Game of Life is a zero player game that involves a two
+							dimensional grid of live/dead cells. The entire simulation is determined
+							by the below four rules.
+						</p>
+						<ol>
+							<li>
+								Any live cell with fewer than two live neighbours dies, as if by
+								underpopulation.
+							</li>
+							<li>
+								Any live cell with two or three live neighbours lives on to the next
+								generation.
+							</li>
+							<li>
+								Any live cell with more than three live neighbours dies, as if by
+								overpopulation.
+							</li>
+							<li>
+								Any dead cell with exactly three live neighbours becomes a live
+								cell, as if by reproduction.
+							</li>
+						</ol>
+						<p>
+							We initially populate all the cells randomly for your entertainment, but
+							use the below controls to:
+						</p>
+						<ul>
+							<li>Draw, erase, and place preset shapes on the grid.</li>
+							<li>Start/stop time.</li>
+							<li>Step one generation at a time through the simulation.</li>
+							<li>
+								Remove all cells from the grid, or randomly populate them again.
+							</li>
+						</ul>
+						<p>
+							Observe how beauty can arrive from chaos. You can see these instructions
+							again by clicking the <code>Show Instructions</code> button. More can be
+							read about this game and its origin
+							<a
+								href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life"
+								target="_blank"
+							>
+								on wikipedia</a
+							>.
+						</p>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+							Got it!
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

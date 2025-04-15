@@ -79,6 +79,17 @@ let cells;
 
 // P5.js functions.
 function setup() {
+	// See if user needs to see instructions.
+	const hasVisited = localStorage.getItem("hasVisited");
+	if (!hasVisited) {
+		// Show the modal
+		const myModal = new bootstrap.Modal("#instructions-modal");
+		myModal.show();
+
+		// Set the flag so we don't show it again on load.
+		localStorage.setItem("hasVisited", "true");
+	}
+
 	// Initialize the framerate.
 	frameRate(fps);
 
