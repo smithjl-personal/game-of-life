@@ -12,48 +12,79 @@
 
 		<!-- Our styles and P5.js styles. -->
 		<link rel="stylesheet" type="text/css" href="style.css" />
-
 		<script src="libraries/p5.min.js"></script>
+		<script src="sketch.js" defer></script>
 	</head>
 
 	<body>
-		<!-- Will be populated by p5.js -->
-		<div id="canvas-container"></div>
+		<div class="container-fluid">
+			<h1 class="text-center">The Game of Life</h1>
 
-		<!-- We manually populate the control container. -->
-		<div id="control-container">
-			<div>Cursor</div>
-			<div>
-				<label>
-					<input type="radio" value="draw" name="mouseStateRadioOption" checked /> Draw
-				</label>
-				<label>
-					<input type="radio" value="erase" name="mouseStateRadioOption" /> Erase
-				</label>
-				<label>
-					<input type="radio" value="place" name="mouseStateRadioOption" /> Place
-				</label>
-			</div>
-			<div id="shape-select-container">
-				<label>Shapes</label>
+			<!-- Will be populated by p5.js -->
+			<div id="canvas-container" class="d-flex justify-content-center"></div>
 
-				<!-- Options populated by JS. -->
-				<select id="shape-select" class="form-select">
-					<option value="-1">** Select a Shape **</option>
-				</select>
+			<!-- We manually populate the control container. -->
+			<div id="control-container" class="mx-auto">
+				<div class="row">
+					<div class="col-md-4">
+						<div>Cursor Mode</div>
+						<div class="form-check form-check-inline">
+							<input
+								id="cursor-radio-draw"
+								class="form-check-input"
+								type="radio"
+								value="draw"
+								name="mouseStateRadioOption"
+								checked
+							/>
+							<label class="form-check-label" for="cursor-radio-draw"> Draw </label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input
+								id="cursor-radio-erase"
+								class="form-check-input"
+								type="radio"
+								value="erase"
+								name="mouseStateRadioOption"
+							/>
+							<label class="form-check-label" for="cursor-radio-erase"> Erase </label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input
+								id="cursor-radio-place"
+								class="form-check-input"
+								type="radio"
+								value="place"
+								name="mouseStateRadioOption"
+							/>
+							<label class="form-check-label" for="cursor-radio-place"> Place </label>
+						</div>
 
-				<!-- TODO: Populate this on select. -->
-				<div id="shape-description"></div>
-			</div>
+						<div id="shape-select-container">
+							<label>Shapes</label>
 
-			<div>
-				<button id="pause-play" type="button" class="btn">Pause/Play Animation</button>
-				<button id="step" type="button" class="btn">Step Once</button>
-				<button id="clear" type="button" class="btn">Empty Grid</button>
-				<button id="fill-random" type="button" class="btn">Fill Grid Randomly</button>
+							<!-- Options populated by JS. -->
+							<select id="shape-select" class="form-select">
+								<option value="-1">** Select a Shape **</option>
+							</select>
+
+							<!-- TODO: Populate this on select. -->
+							<div id="shape-description"></div>
+						</div>
+					</div>
+					<div class="col-md-8">
+						<div>State Controls</div>
+						<button id="pause-play" type="button" class="btn btn-light">
+							Pause/Play Animation
+						</button>
+						<button id="step" type="button" class="btn btn-light">Step Once</button>
+						<button id="clear" type="button" class="btn btn-light">Empty Grid</button>
+						<button id="fill-random" type="button" class="btn btn-light">
+							Fill Grid Randomly
+						</button>
+					</div>
+				</div>
 			</div>
 		</div>
-
-		<script src="sketch.js"></script>
 	</body>
 </html>
