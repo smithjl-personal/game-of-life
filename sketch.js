@@ -705,7 +705,7 @@ function updateWindowWidthVariables(e) {
 	} else if (window.innerWidth > 750) {
 		newWindowWidthState = "medium";
 		newCanvasWidth = 800;
-		newCanvasHeight = 750;
+		newCanvasHeight = 500;
 	} else {
 		newWindowWidthState = "small";
 		newCanvasWidth = 300;
