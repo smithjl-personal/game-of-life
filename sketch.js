@@ -29,7 +29,7 @@
 
 let currentWindowWidthState = "loading";
 let canvasWidth = 1400;
-let canvasHeight = 750;
+let canvasHeight = 700;
 
 let cellSize = 10;
 let cellsX = canvasWidth / cellSize;
@@ -701,8 +701,8 @@ function updateWindowWidthVariables(e) {
 	if (window.innerWidth > 1400) {
 		newWindowWidthState = "large";
 		newCanvasWidth = 1400;
-		newCanvasHeight = 750;
-	} else if (window.innerWidth > 750) {
+		newCanvasHeight = 700;
+	} else if (window.innerWidth > 800) {
 		newWindowWidthState = "medium";
 		newCanvasWidth = 800;
 		newCanvasHeight = 500;
