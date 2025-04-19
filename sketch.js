@@ -30,6 +30,9 @@
 /** @type {WindowWidthState} */
 let currentWindowWidthState = "loading";
 
+/** Stores the timeout for window resize/width updates. */
+let resizeTimeout;
+
 /** How wide the canvas is (in pixels). */
 let canvasWidth = 1400;
 
@@ -772,43 +775,51 @@ function mouseStateChanged(e) {
  * Large, Medium, and Small screens. If the view size changes to a new bucket, we update all of our
  * variables to account for the new size of the canvas. This is also why there are many safe navigation
  * operators used when looping over the global `cells` array. The width can change while looping!
+ *
+ * We have a timeout here because some mobile browsers (especially Safari on iOS) can report weird
+ * `window.innerWidth` values due to dynamic toolbars or not updating immediately on orientation change.
+ * The timeout allows time for all that to settle before making any updates.
  */
 function updateWindowWidthVariables() {
-	let newWindowWidthState;
-	let newCanvasWidth;
-	let newCanvasHeight;
-	if (window.innerWidth > 1400) {
-		newWindowWidthState = "large";
-		newCanvasWidth = 1400;
-		newCanvasHeight = 700;
-	} else if (window.innerWidth > 800) {
-		newWindowWidthState = "medium";
-		newCanvasWidth = 800;
-		newCanvasHeight = 500;
-	} else {
-		newWindowWidthState = "small";
-		newCanvasWidth = 300;
-		newCanvasHeight = 500;
-	}
+	const resizeTimeoutDurationMS = 150;
+	clearTimeout(resizeTimeout);
+	resizeTimeout = setTimeout(function () {
+		let newWindowWidthState;
+		let newCanvasWidth;
+		let newCanvasHeight;
+		if (window.innerWidth > 1400) {
+			newWindowWidthState = "large";
+			newCanvasWidth = 1400;
+			newCanvasHeight = 700;
+		} else if (window.innerWidth > 800) {
+			newWindowWidthState = "medium";
+			newCanvasWidth = 800;
+			newCanvasHeight = 500;
+		} else {
+			newWindowWidthState = "small";
+			newCanvasWidth = 300;
+			newCanvasHeight = 500;
+		}
 
-	// If it's the same, do nothing.
-	if (newWindowWidthState === currentWindowWidthState) {
-		return;
-	}
+		// If it's the same, do nothing.
+		if (newWindowWidthState === currentWindowWidthState) {
+			return;
+		}
 
-	// Update the state, and all variables.
-	currentWindowWidthState = newWindowWidthState;
-	canvasWidth = newCanvasWidth;
-	canvasHeight = newCanvasHeight;
-	cellsX = canvasWidth / cellSize;
-	cellsY = canvasHeight / cellSize;
-	resizeCanvas(canvasWidth, canvasHeight);
+		// Update the state, and all variables.
+		currentWindowWidthState = newWindowWidthState;
+		canvasWidth = newCanvasWidth;
+		canvasHeight = newCanvasHeight;
+		cellsX = canvasWidth / cellSize;
+		cellsY = canvasHeight / cellSize;
+		resizeCanvas(canvasWidth, canvasHeight);
 
-	// Make the control container the same width as the canvas.
-	const controlContainer = document.getElementById("control-container");
-	if (controlContainer === null) {
-		console.error("Unable to find the control container, so unable to update it's width.");
-	} else {
-		controlContainer.style.maxWidth = `${canvasWidth}px`;
-	}
+		// Make the control container the same width as the canvas.
+		const controlContainer = document.getElementById("control-container");
+		if (controlContainer === null) {
+			console.error("Unable to find the control container, so unable to update it's width.");
+		} else {
+			controlContainer.style.maxWidth = `${canvasWidth}px`;
+		}
+	}, resizeTimeoutDurationMS);
 }
