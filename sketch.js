@@ -3,9 +3,6 @@
  * @description
  *      Deployments go: https://smithjl-personal.github.io/game-of-life/
  *
- *      Known Issues:
- *      - Docs are lacking on this page in some areas. Fix it.
- *
  * @ideas
  *      Make a tool that allows exports of the game state to this string encoded format?
  *      Make tool that allows selection of area on the board for copy/export (like a selection rectangle).
@@ -16,9 +13,10 @@
  *      Create a "Favorites" section backed by localStorage.
  *      Use .txt or .rle files to support importing from LifeWiki or Golly formats.
  *
- * @typedef {Array<Array<boolean>>} GameOfLifeBoard
+ * @typedef {Array<Array<boolean>>} GameOfLifeBoard 2D array of booleans storing the game state.
  *
- * @typedef {"draw" | "erase" | "place"} selectedMouseState
+ * @typedef {"draw" | "erase" | "place"} SelectedMouseState
+ * @typedef {"loading" | "small" | "medium" | "large"} WindowWidthState
  *
  * @typedef ShapeChoice
  * @property {string} id
@@ -27,23 +25,39 @@
  * @property {string} data The encoded data for this shape.
  */
 
+/** ================================ Global Variables ================================ */
+
+/** @type {WindowWidthState} */
 let currentWindowWidthState = "loading";
+
+/** How wide the canvas is (in pixels). */
 let canvasWidth = 1400;
+
+/** How tall the canvas is (in pixels). */
 let canvasHeight = 700;
 
+/** How many pixels each cell should take up. */
 let cellSize = 10;
+
+/** How many cells wide the `cells` global is. */
 let cellsX = canvasWidth / cellSize;
+
+/** How many cells tall the `cells` global is. */
 let cellsY = canvasHeight / cellSize;
 
+/** How many times the `draw` function should be called per second. */
 let fps = 8;
 
+/** When frozen, cell states do not update. */
 let isFrozen = false;
 
-// Loaded later.
-/** @type {[ShapeChoice]} */
+/** @type {[ShapeChoice]} Array of shapes. Loaded async.*/
 let SHAPE_CHOICES = [];
+
+/** @type {[ShapeChoice]} Struct of shape descriptions. Loaded async.*/
 let SHAPE_TYPE_TO_DESCRIPTIONS = {};
 
+/** Stores the current state for the selected shape select. Useful for drawing preview on the canvas. */
 let selectedShapeData = {
 	index: -1,
 	width: 0,
@@ -52,13 +66,17 @@ let selectedShapeData = {
 	cursorY: -1,
 };
 
-/** @type {selectedMouseState} */
+/** @type {SelectedMouseState} The selected cursor mode. */
 let selectedMouseState = "draw";
 
-/** @type {GameOfLifeBoard} */
+/** @type {GameOfLifeBoard} 2D Array storing the cells for the grid. */
 let cells;
 
-// P5.js functions.
+/** ================================ P5.js Functions ================================ */
+
+/**
+ * P5.js function, called once on startup before draw.
+ */
 function setup() {
 	// Start by async loading shape data.
 	loadShapes();
@@ -95,6 +113,9 @@ function setup() {
 	setDefaultFormState();
 }
 
+/**
+ * P5.js function, called every frame.
+ */
 function draw() {
 	// Start with the black background.
 	background("black");
@@ -142,7 +163,12 @@ function draw() {
 	}
 }
 
-// Our Functions.
+/** ================================ Our Functions ================================= */
+
+/**
+ * Asynchronously loads shape and shape description data from our local database.
+ * Then updates our **global** variables that store them.
+ */
 async function loadShapes() {
 	try {
 		const response = await fetch("./db/shapes.json");
@@ -163,6 +189,10 @@ async function loadShapes() {
 		console.error("Error loading shape data:", err);
 	}
 }
+
+/**
+ * Sets up all event listeners on form controls, and on the window.
+ */
 function setEventListeners() {
 	const errors = [];
 
@@ -227,10 +257,28 @@ function setEventListeners() {
 		shapeChoiceSelect.addEventListener("change", selectedShapeChanged);
 	}
 
+	// Prevent the context menu from popping up when clicking on the canvas.
+	window.addEventListener("contextmenu", function (e) {
+		/** @type {HTMLElement} */
+		const target = e.target;
+		if (target.tagName === "CANVAS") {
+			e.preventDefault();
+		}
+	});
+
+	// Update the window width when it's size changes.
+	window.addEventListener("resize", updateWindowWidthVariables);
+
 	if (errors.length) {
 		console.error(errors.join("\n"));
 	}
 }
+
+/**
+ * Updates display/hide state of the form.
+ * On reload, some browsers remember the old state.
+ * This function accounts for that.
+ */
 function setDefaultFormState() {
 	const selectedMouseStateRadio = document.querySelector(
 		"input[name='mouseStateRadioOption']:checked"
@@ -249,10 +297,13 @@ function setDefaultFormState() {
 	}
 }
 
+/**
+ * Selects the shape choice select, and puts all the options in it.
+ */
 function populateShapeChoiceSelectOptions() {
 	let select = document.getElementById("shape-select");
 	if (select === null) {
-		console.error("Could not find select");
+		console.error("Could not find select.");
 	} else {
 		for (let i = 0; i < SHAPE_CHOICES.length; i++) {
 			const choice = SHAPE_CHOICES[i];
@@ -368,7 +419,7 @@ function countCellNeighbors(x, y) {
 }
 
 /**
- * Populates the grid with random data.
+ * Populates the grid with random data. 50/50 chance of being live and dead.
  */
 function setRandomCellData() {
 	for (let y = 0; y < cellsY; y++) {
@@ -550,9 +601,9 @@ function getDead2DArray(width, height) {
 	return arr;
 }
 
-// User input events.
-
 /**
+ * Called whenever the mouse goes over the canvas in any fashion.
+ * This was also designed for mobile, so it can handle the mobile touch events as well.
  * @param {MouseEvent | TouchEvent} e
  */
 function canvasMouseEvent(e) {
@@ -563,6 +614,7 @@ function canvasMouseEvent(e) {
 		return;
 	}
 
+	// Drawing/erasing is pretty simple. Just check the mouse state and update accordingly.
 	if (selectedMouseState === "draw" || selectedMouseState === "erase") {
 		let cellState;
 		if (selectedMouseState === "draw") {
@@ -576,12 +628,17 @@ function canvasMouseEvent(e) {
 		cells[result.cellY][result.cellX] = cellState;
 	}
 
+	// If the user is trying to place a shape (and they have chosen one)
 	if (selectedMouseState === "place" && selectedShapeData.index !== -1) {
+		// These events tell the canvas to draw an outline of the shape.
 		if (["mousemove", "mousedown", "touchmove", "touchstart"].includes(e.type)) {
 			const result = getStructuredClickData(e);
 			selectedShapeData.cursorX = result.x;
 			selectedShapeData.cursorY = result.y;
-		} else if (["mouseup", "touchend"].includes(e.type)) {
+		}
+
+		// These events actually attempt to place the shape.
+		else if (["mouseup", "touchend"].includes(e.type)) {
 			// Clear selected cursor position.
 			selectedShapeData.cursorX = -1;
 			selectedShapeData.cursorY = -1;
@@ -597,8 +654,10 @@ function canvasMouseEvent(e) {
 }
 
 /**
- * Given a mouse/touch event, returns some useful data to us. It normalizes the client X and Y to where that would be on the canvas.
- * It also determines which cell they clicked on. We do not support multiple finger touches at this time.
+ * Given a mouse/touch event, returns some useful data to us.
+ * It normalizes the client X and Y to where that would be on the canvas.
+ * It also determines which cell they clicked on.
+ * We do not support multiple finger touches at this time.
  * @param {MouseEvent | TouchEvent} e
  */
 function getStructuredClickData(e) {
@@ -635,11 +694,15 @@ function getStructuredClickData(e) {
 	return result;
 }
 
+/** Toggles TIME ITSELF. */
 function clickedPausePlay() {
 	isFrozen = !isFrozen;
 }
 
-/** @param {Event} e */
+/**
+ * Called when the user changes the selection on the shape select.
+ * @param {Event} e
+ */
 function selectedShapeChanged(e) {
 	/** @type {HTMLInputElement} */
 	const el = e.target;
@@ -649,7 +712,7 @@ function selectedShapeChanged(e) {
 	// Update the display text under the shape.
 	const descriptionContainer = document.getElementById("shape-description");
 	if (descriptionContainer === null) {
-		console.error("Can't find description container. No description change.");
+		console.error("Can't find description container. Not critical, but no description change.");
 	}
 
 	// Parse the shape, if we can find it.
@@ -662,10 +725,18 @@ function selectedShapeChanged(e) {
 			descriptionContainer.innerHTML = "";
 		}
 	} else {
+		// If we somehow fail to parse the shape, let the dev know they messed up.
 		const parsedShape = parseEncodedShapeString(selectedShape.data);
+		if (!parsedShape.success) {
+			console.error(parsedShape.message);
+			return;
+		}
+
+		// Store width and height for drawing outline purposes.
 		selectedShapeData.width = parsedShape.decodedShapeWidth;
 		selectedShapeData.height = parsedShape.decodedShapeHeight;
 
+		// If we found the description container and this shape type has a description, show it.
 		if (descriptionContainer && SHAPE_TYPE_TO_DESCRIPTIONS[selectedShape.type]) {
 			descriptionContainer.innerHTML = `
                 <b>${selectedShape.type}</b>
@@ -675,13 +746,17 @@ function selectedShapeChanged(e) {
 	}
 }
 
-/** @param {Event} e */
+/**
+ * Called when the user chooses a new state from the radio.
+ * @param {Event} e
+ */
 function mouseStateChanged(e) {
 	/** @type {HTMLInputElement} */
 	const el = e.target;
 	const newValue = el.value;
 	selectedMouseState = newValue;
 
+	// Only show the shape select when mode is `place`.
 	const newShapeContainerDisplay = selectedMouseState === "place" ? "block" : "none";
 
 	const shapeSelectContainer = document.querySelector("#shape-select-container");
@@ -692,9 +767,13 @@ function mouseStateChanged(e) {
 	}
 }
 
-/** @param {UIEvent} e */
-function updateWindowWidthVariables(e) {
-	// Find out what the width is...
+/**
+ * Updates canvas size based on the current window size. Currently, we have mocked up three views.
+ * Large, Medium, and Small screens. If the view size changes to a new bucket, we update all of our
+ * variables to account for the new size of the canvas. This is also why there are many safe navigation
+ * operators used when looping over the global `cells` array. The width can change while looping!
+ */
+function updateWindowWidthVariables() {
 	let newWindowWidthState;
 	let newCanvasWidth;
 	let newCanvasHeight;
@@ -726,19 +805,10 @@ function updateWindowWidthVariables(e) {
 	resizeCanvas(canvasWidth, canvasHeight);
 
 	// Make the control container the same width as the canvas.
-	let controlContainer = document.getElementById("control-container");
-	if (controlContainer) {
+	const controlContainer = document.getElementById("control-container");
+	if (controlContainer === null) {
+		console.error("Unable to find the control container, so unable to update it's width.");
+	} else {
 		controlContainer.style.maxWidth = `${canvasWidth}px`;
 	}
 }
-
-// Prevent the context menu from popping up when clicking on the canvas.
-window.addEventListener("contextmenu", function (e) {
-	/** @type {HTMLElement} */
-	const target = e.target;
-	if (target.tagName === "CANVAS") {
-		e.preventDefault();
-	}
-});
-
-window.addEventListener("resize", updateWindowWidthVariables);
