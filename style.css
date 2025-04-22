@@ -23,4 +23,9 @@ body {
 	html {
 		font-size: 12px;
 	}
+
+	/* Fixes issue on mobile on chromium. */
+	.modal-lg {
+		max-width: 95vw;
+	}
 }

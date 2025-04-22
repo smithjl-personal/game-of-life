@@ -691,6 +691,10 @@ function getStructuredClickData(e) {
 	result.x = clientX - rect.left;
 	result.y = clientY - rect.top;
 
+	// Chrome reports some strange values here sometimes. Clamp them.
+	result.x = Math.max(0, Math.min(result.x, canvasWidth - 1));
+	result.y = Math.max(0, Math.min(result.y, canvasHeight - 1));
+
 	result.cellX = Math.floor(result.x / cellSize);
 	result.cellY = Math.floor(result.y / cellSize);
 
@@ -784,14 +788,15 @@ function updateWindowWidthVariables() {
 	const resizeTimeoutDurationMS = 150;
 	clearTimeout(resizeTimeout);
 	resizeTimeout = setTimeout(function () {
+		const width = getViewportWidth();
 		let newWindowWidthState;
 		let newCanvasWidth;
 		let newCanvasHeight;
-		if (window.innerWidth > 1400) {
+		if (width > 1400) {
 			newWindowWidthState = "large";
 			newCanvasWidth = 1400;
 			newCanvasHeight = 700;
-		} else if (window.innerWidth > 800) {
+		} else if (width > 800) {
 			newWindowWidthState = "medium";
 			newCanvasWidth = 800;
 			newCanvasHeight = 500;
@@ -822,4 +827,20 @@ function updateWindowWidthVariables() {
 			controlContainer.style.maxWidth = `${canvasWidth}px`;
 		}
 	}, resizeTimeoutDurationMS);
+}
+
+/**
+ * Different browsers have different issues reporting the window width.
+ * This function **attempts** to account for this. With a fallback value of 350
+ * if all else fails.
+ * @returns {number} The width of the window.
+ */
+function getViewportWidth() {
+	// Works best for most Chromium based browsers and safari.
+	if (window.visualViewport) {
+		return window.visualViewport.width;
+	}
+
+	// Works for Firefox or unsupported browsers. If all else fails assume a width of 350.
+	return Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0, 350);
 }
