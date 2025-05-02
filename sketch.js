@@ -49,10 +49,10 @@ let cellsX = canvasWidth / cellSize;
 let cellsY = canvasHeight / cellSize;
 
 /** How many times the `draw` function should be called per second. */
-let fps = 8;
+let fps = 60;
 
-/** When frozen, cell states do not update. */
-let isFrozen = false;
+/** How many frames pass before we update the cell state. 0 means no updates.  */
+let tickRate = 7;
 
 /** @type {[ShapeChoice]} Array of shapes. Loaded async.*/
 let SHAPE_CHOICES = [];
@@ -161,7 +161,7 @@ function draw() {
 		rect(selectedShapeData.cursorX, selectedShapeData.cursorY, rectWidth, rectHeight);
 	}
 
-	if (!isFrozen) {
+	if (tickRate > 0 && frameCount % tickRate === 0) {
 		updateCells();
 	}
 }
@@ -214,11 +214,11 @@ function setEventListeners() {
 		canvas.addEventListener("touchmove", canvasMouseEvent);
 	}
 
-	const pausePlayButton = document.querySelector("button#pause-play");
-	if (pausePlayButton === null) {
-		errors.push("Could not find element with selector `button#pause-play`.");
+	const animationSpeedSlider = document.querySelector("input#animation-speed");
+	if (animationSpeedSlider === null) {
+		errors.push("Could not find element with selector `input#animation-speed`.");
 	} else {
-		pausePlayButton.addEventListener("click", clickedPausePlay);
+		animationSpeedSlider.addEventListener("input", animationSpeedChanged);
 	}
 
 	const stepButton = document.querySelector("button#step");
@@ -297,6 +297,13 @@ function setDefaultFormState() {
 		} else {
 			shapeSelectContainer.style.display = "none";
 		}
+	}
+
+	const animationSpeedSlider = document.querySelector("input#animation-speed");
+	if (animationSpeedSlider === null) {
+		console.error("Could not find element with selector `input#animation-speed`.");
+	} else {
+		animationSpeedSlider.value = 6;
 	}
 }
 
@@ -701,11 +708,6 @@ function getStructuredClickData(e) {
 	return result;
 }
 
-/** Toggles TIME ITSELF. */
-function clickedPausePlay() {
-	isFrozen = !isFrozen;
-}
-
 /**
  * Called when the user changes the selection on the shape select.
  * @param {Event} e
@@ -771,6 +773,27 @@ function mouseStateChanged(e) {
 		console.error("Could not find shape choice container...");
 	} else {
 		shapeSelectContainer.style.display = newShapeContainerDisplay;
+	}
+}
+
+/**
+ * Called when the user changes the value on the animation speed slider.
+ * @param {Event} e
+ */
+function animationSpeedChanged(e) {
+	const rawValue = e.target.value;
+	const parsedValue = parseInt(rawValue);
+
+	if (isNaN(parsedValue)) {
+		console.warn(`Tried to set value of animation speed to not number. Tried "${rawValue}".`);
+		return;
+	}
+
+	if (parsedValue === 0) {
+		tickRate = 0;
+	} else {
+		const normalized = 12 - parsedValue;
+		tickRate = Math.max(1, normalized);
 	}
 }
 

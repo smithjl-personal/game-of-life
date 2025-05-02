@@ -88,11 +88,20 @@
 							<div id="shape-description"></div>
 						</div>
 					</div>
-					<div class="col-lg-6">
+					<div class="col-lg-2">
+						<div>Animation Speed</div>
+						<input
+							id="animation-speed"
+							class="form-range"
+							type="range"
+							min="0"
+							max="12"
+							step="1"
+							value="6"
+						/>
+					</div>
+					<div class="col-lg-5">
 						<div>State Controls</div>
-						<button id="pause-play" type="button" class="btn btn-light mt-1">
-							Pause/Play Animation
-						</button>
 						<button id="step" type="button" class="btn btn-light mt-1">
 							Step Once
 						</button>
@@ -103,7 +112,7 @@
 							Fill Grid Randomly
 						</button>
 					</div>
-					<div class="col-lg-3">
+					<div class="col-lg-2">
 						<div>Info</div>
 						<button
 							id="show-instructions"
@@ -168,7 +177,7 @@
 						</p>
 						<ul>
 							<li>Draw, erase, and place preset shapes on the grid.</li>
-							<li>Start/stop time.</li>
+							<li>Speed up, slow down, or stop the simulation.</li>
 							<li>Step one generation at a time through the simulation.</li>
 							<li>
 								Remove all cells from the grid, or randomly populate them again.
